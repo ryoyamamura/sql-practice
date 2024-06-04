@@ -3,6 +3,7 @@ import streamlit as st
 import matplotlib.pyplot as plt
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine, text
+import os
 
 # 環境変数の取得
 db_user = os.getenv('DB_USER')
