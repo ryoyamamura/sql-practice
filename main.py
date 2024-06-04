@@ -4,12 +4,6 @@ import matplotlib.pyplot as plt
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine, text
 
-import os
-from dotenv import load_dotenv
-
-# .envファイルの内容を読み込む
-load_dotenv()
-
 # 環境変数の取得
 db_user = os.getenv('DB_USER')
 db_password = os.getenv('DB_PASSWORD')
