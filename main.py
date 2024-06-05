@@ -3,7 +3,12 @@ import streamlit as st
 from pygwalker.api.streamlit import StreamlitRenderer
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
+
 import os
+from dotenv import load_dotenv
+
+# .envファイルの内容を読み込む
+load_dotenv()
 
 # 環境変数の取得
 db_user = os.getenv('DB_USER')
@@ -44,13 +49,23 @@ st.sidebar.write("""
 """)
 
 # データベースにクエリを発行し、返り値として DataFrame を取り出す関数を定義
-def extract_data(query: str, connection=engine.connect()) -> pd.DataFrame:
+def extract_data(query: str, connection) -> pd.DataFrame:
   # SQL 文の定義
   query = text(query)
 
   # SQL 文の実行
   df_sql = pd.read_sql(sql=query, con=connection)
   return df_sql
+
+# エラーの際に SQL クエリを保存する関数を定義
+def log_error(query: str, error_message: str) -> None:
+    log_query = """
+    INSERT INTO error_logs (query, error_message)
+    VALUES (:query, :error_message)
+    """
+    with engine.connect() as connection:
+        with connection.begin():
+            connection.execute(text(log_query), {'query': query, 'error_message': error_message})
 
 # SQL入力フォーム
 sql_query = st.text_area("SQL クエリをここに書いてください", height=150)
@@ -75,13 +90,15 @@ if st.session_state['submit_button']:
                 result = extract_data(sql_query, connection)
                 st.dataframe(result)
             if st.button("PyGWalker で可視化"):
-                    st.session_state['show_pygwalker_button'] = True            
+                st.session_state['show_pygwalker_button'] = True            
             if st.session_state['show_pygwalker_button']:
                 pyg_app = StreamlitRenderer(result)
                 pyg_app.explorer()
             # クエリ実行と結果表示
         except SQLAlchemyError as e:
             st.error(f"SQL エラー: {e}")
+            error_message = str(e)
+            log_error(sql_query, error_message)
 
 # ER図のトグル表示
 show_er_diagram = st.checkbox("ER 図を見る")
