@@ -74,11 +74,7 @@ if st.session_state['submit_button']:
             with engine.connect() as connection:
                 result = extract_data(sql_query, connection)
                 st.dataframe(result)
-            # 2つの列を作成
-            col1, col2 = st.columns(2)  
-            
-            with col1:
-                if st.button("PyGWalker で可視化"):
+            if st.button("PyGWalker で可視化"):
                     st.session_state['show_pygwalker_button'] = True            
             if st.session_state['show_pygwalker_button']:
                 pyg_app = StreamlitRenderer(result)
