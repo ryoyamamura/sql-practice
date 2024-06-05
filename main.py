@@ -21,7 +21,7 @@ engine = create_engine('postgresql://{user}:{password}@{host}:{port}/{dbname}'.f
 
 
 st.set_page_config(
-    page_title="SQL × Pygwalker でデータ可視化",
+    page_title="SQL × PyGwalker でデータ可視化",
     layout="wide",
     page_icon=":shopping_trolley:"
 )
