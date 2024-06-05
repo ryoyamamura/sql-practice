@@ -1,16 +1,9 @@
 import pandas as pd
 import streamlit as st
 from pygwalker.api.streamlit import StreamlitRenderer
-# import matplotlib.pyplot as plt
-# from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
-
 import os
-from dotenv import load_dotenv
-
-# .envファイルの内容を読み込む
-load_dotenv()
 
 # 環境変数の取得
 db_user = os.getenv('DB_USER')
