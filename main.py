@@ -7,6 +7,10 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
 
 import os
+from dotenv import load_dotenv
+
+# .envファイルの内容を読み込む
+load_dotenv()
 
 # 環境変数の取得
 db_user = os.getenv('DB_USER')
@@ -25,17 +29,25 @@ engine = create_engine('postgresql://{user}:{password}@{host}:{port}/{dbname}'.f
 
 st.set_page_config(
     page_title="SQL × Pygwalker でデータ可視化",
-    layout="wide"
+    layout="wide",
+    page_icon=":shopping_trolley:"
 )
+
+st.write('''
+# :shopping_trolley: スーパーの購買データ分析 :receipt:
+:bar_chart: **SQL** と **PyGWalker** を使って分析してみましょう :bulb:   
+:mag: データベースの ER 図はページ下部の「ER 図を見る」ボタンで表示できます 
+''')
 
 # サイドバーにアプリの使い方を記載
 st.sidebar.title("How to Use")
-st.sidebar.write("""
+st.sidebar.write("""                 
 1. SQL クエリをテキストボックスに入力してください.
 2. 「SQL クエリ実行」ボタンを押してクエリを実行できます。
 3. クエリ結果が下に表示されます。
-4. 「PygWalker で可視化」ボタンを押すとクエリ結果をもとにした PygWalker のエディタ画面が開きます。
-5. データベースの ER 図は「ER 図を見る」ボタンで表示できます。
+4. 「PyGWalker で可視化」ボタンを押すとクエリ結果をもとにした PyGWalker のエディタ画面が開きます。  
+
+※ PyGWalker の使い方は[PyGWalker 公式ドキュメント](https://docs.kanaries.net/ja/graphic-walker/data-viz/create-data-viz)をご覧ください。
 """)
 
 # データベースにクエリを発行し、返り値として DataFrame を取り出す関数を定義
@@ -49,10 +61,19 @@ def extract_data(query: str, connection=engine.connect()) -> pd.DataFrame:
 
 # SQL入力フォーム
 sql_query = st.text_area("SQL クエリをここに書いてください", height=150)
-submit_button = st.button("SQL クエリ実行")
+
+# ボタンの状態を保持するセッションステートを初期化
+if 'submit_button' not in st.session_state:
+    st.session_state['submit_button'] = False
+
+if 'show_pygwalker_button' not in st.session_state:
+    st.session_state['show_pygwalker_button'] = False
 
 # クエリ実行と結果表示
-if submit_button:
+if st.button("SQL クエリ実行"):
+    st.session_state['submit_button'] = True
+
+if st.session_state['submit_button']:
     if sql_query.strip() == "":
         st.error("SQL クエリが空の状態です")
     else:
@@ -60,20 +81,16 @@ if submit_button:
             with engine.connect() as connection:
                 result = extract_data(sql_query, connection)
                 st.dataframe(result)
-        except SQLAlchemyError as e:
-            st.error(f"SQL エラー: {e}")
-
-show_pygwalker_button = st.button("PygWalker で可視化")
-
-if show_pygwalker_button:
-    if sql_query.strip() == "":
-        st.error("SQL クエリが空の状態です")
-    else:
-        try:
-            with engine.connect() as connection:
-                result = extract_data(sql_query, connection)
+            # 2つの列を作成
+            col1, col2 = st.columns(2)  
+            
+            with col1:
+                if st.button("PyGWalker で可視化"):
+                    st.session_state['show_pygwalker_button'] = True            
+            if st.session_state['show_pygwalker_button']:
                 pyg_app = StreamlitRenderer(result)
-                pyg_app.explorer()                
+                pyg_app.explorer()
+            # クエリ実行と結果表示
         except SQLAlchemyError as e:
             st.error(f"SQL エラー: {e}")
 
@@ -82,4 +99,4 @@ show_er_diagram = st.checkbox("ER 図を見る")
 if show_er_diagram:
     st.image("100knocks_ER.png", caption="ER 図", use_column_width=True)
 
-st.write("データの出典：「データサイエンティスト協会スキル定義委員」の「データサイエンス100本ノック（構造化データ加工編）」")
+st.write("データの出典 :「データサイエンティスト協会スキル定義委員」の「[データサイエンス100本ノック（構造化データ加工編）](https://github.com/The-Japan-DataScientist-Society/100knocks-preprocess)」を使用しています")
