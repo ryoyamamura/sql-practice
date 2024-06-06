@@ -3,13 +3,20 @@ import streamlit as st
 from pygwalker.api.streamlit import StreamlitRenderer
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
+
 import os
+from dotenv import load_dotenv
+
+# .envファイルの内容を読み込む
+load_dotenv()
 
 # 環境変数の取得
 db_user = os.getenv('DB_USER')
 db_password = os.getenv('DB_PASSWORD')
 db_host = os.getenv('DB_HOST')
 db_name = os.getenv('DB_NAME')
+db_admin = os.getenv('DB_ADMIN')
+db_admin_password = os.getenv('DB_ADMIN_PASSWORD')
 
 engine = create_engine('postgresql://{user}:{password}@{host}:{port}/{dbname}'.format(
                         user = db_user,
@@ -19,9 +26,16 @@ engine = create_engine('postgresql://{user}:{password}@{host}:{port}/{dbname}'.f
                         dbname = db_name
     ))
 
+engine_admin = create_engine('postgresql://{user}:{password}@{host}:{port}/{dbname}'.format(
+                        user = db_admin,
+                        password = db_admin_password,
+                        host = db_host,
+                        port = "6543",
+                        dbname = db_name
+    ))
 
 st.set_page_config(
-    page_title="SQL × PyGwalker でデータ可視化",
+    page_title="SQL × PyGWalker でデータ分析",
     layout="wide",
     page_icon=":shopping_trolley:"
 )
@@ -44,21 +58,22 @@ st.sidebar.write("""
 """)
 
 # データベースにクエリを発行し、返り値として DataFrame を取り出す関数を定義
-def extract_data(query: str, connection) -> pd.DataFrame:
+def extract_data(query: str) -> pd.DataFrame:
   # SQL 文の定義
   query = text(query)
 
   # SQL 文の実行
-  df_sql = pd.read_sql(sql=query, con=connection)
+  with engine.connect() as connection:
+      df_sql = pd.read_sql(sql=query, con=connection)
   return df_sql
 
 # エラーの際に SQL クエリを保存する関数を定義
 def log_error(query: str, error_message: str) -> None:
     log_query = """
-    INSERT INTO error_logs (query, error_message)
+    INSERT INTO admin_only.error_logs (query, error_message)
     VALUES (:query, :error_message)
     """
-    with engine.connect() as connection:
+    with engine_admin.connect() as connection:
         with connection.begin():
             connection.execute(text(log_query), {'query': query, 'error_message': error_message})
 
@@ -81,9 +96,8 @@ if st.session_state['submit_button']:
         st.error("SQL クエリが空の状態です")
     else:
         try:
-            with engine.connect() as connection:
-                result = extract_data(sql_query, connection)
-                st.dataframe(result)
+            result = extract_data(sql_query)
+            st.dataframe(result)
             if st.button("PyGWalker で可視化"):
                 st.session_state['show_pygwalker_button'] = True            
             if st.session_state['show_pygwalker_button']:
